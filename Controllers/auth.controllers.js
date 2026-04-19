@@ -1,16 +1,10 @@
-
 import User from '../Models/user.model.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/env.js';
-
-import sendWelcomeEmail from '../utils/emails1.js';
-import sendRenewalReminderEmail from '../utils/emails2.js';
+import sendWelcomeEmail from '../utils/welcome.js'; // ✅ correct import
 
 export const signUp = async (req, res, next) => {
-    // const session = await mongoose.startSession();
-    // session.startTransaction();
-
     const { name, email, password } = req.body;
     try {
         if (!name || !email || !password) {
@@ -19,9 +13,8 @@ export const signUp = async (req, res, next) => {
             throw error;
         }
 
-        const existingUser = await User.findOne({ email })
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
-            console.log(existingUser);
             const error = new Error('User already exist');
             error.statusCode = 409;
             throw error;
@@ -31,20 +24,16 @@ export const signUp = async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const [newUser] = await User.create(
-            [{ name, email, password: hashedPassword }],
-
+            [{ name, email, password: hashedPassword }]
         );
 
-
-
-        // await session.commitTransaction();
-        // session.endSession();
+        // ✅ Send welcome email after successful registration
+        await sendWelcomeEmail(newUser.email, newUser.name);
 
         res.status(201).json({
             success: true,
             message: 'User created successfully',
             data: {
-
                 user: {
                     _id: newUser._id,
                     name: newUser.name,
@@ -52,11 +41,8 @@ export const signUp = async (req, res, next) => {
                 }
             }
         });
-        
 
     } catch (error) {
-        // await session.abortTransaction();
-        // session.endSession();
         next(error);
     }
 };

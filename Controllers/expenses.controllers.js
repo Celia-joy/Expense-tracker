@@ -3,7 +3,7 @@ import Expenses from '../Models/expenses.models.js';
 
 export const createExpenses = async (req, res, next)=>{
     try{
-        const expense = await Subscription.create({
+        const expense = await Expenses.create({
             ...req.body,
             user: req.user._id
         });
@@ -17,28 +17,10 @@ export const createExpenses = async (req, res, next)=>{
         next (error);
     }
 }
-export const getUserExpenses = async(req, res, next)=>{
-    try {
-        if(req.user.id != req.params.id){
-            const error = new Error('You are not the owner of this account');
-            error.status = 401;
-            throw error;
-        }
-        const expenses = await Subscription.find({user: req.params.id});
-        res.status(200).json({
-            success:true,
-            data: expenses
-        });
 
-    }
-    catch(error){
-        next(error);
-    }
-
-}
-export const getAllExpenses = async (req, res, next)=>{
+export const getMyExpenses = async (req, res, next)=>{
     try{
-        const Allexpenses = await Subscription.find();
+        const Allexpenses = await Expenses.find({user: req.user._id});
         res.status(200).json({
             success:true,
             data: Allexpenses
@@ -48,3 +30,38 @@ export const getAllExpenses = async (req, res, next)=>{
         next(error)
     }
 }
+
+export const updateExpense = async (req, res, next) => {
+    try {
+        const expense = await Expenses.findOneAndUpdate(
+            { _id: req.params.id, user: req.user._id }, // ← ensures ownership
+            { $set: req.body },
+            { new: true }
+        );
+        if (!expense) {
+            const error = new Error('Expense not found');
+            error.statusCode = 404;
+            throw error;
+        }
+        res.status(200).json({ success: true, data: expense });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const deleteExpense = async (req, res, next) => {
+    try {
+        const expense = await Expenses.findOneAndDelete({
+            _id: req.params.id,
+            user: req.user._id // ← ensures ownership
+        });
+        if (!expense) {
+            const error = new Error('Expense not found');
+            error.statusCode = 404;
+            throw error;
+        }
+        res.status(200).json({ success: true, message: 'Expense deleted' });
+    } catch (error) {
+        next(error);
+    }
+};
